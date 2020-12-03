@@ -73,7 +73,7 @@ contract Ownable {
     }
 }
 
-contract TronHero is Ownable {
+contract JustHero is Ownable {
     using SafeMath for uint256;
     uint256 public constant DEVELOPER_RATE = 40; //per thousand
     uint256 public constant MARKETING_RATE = 40;
