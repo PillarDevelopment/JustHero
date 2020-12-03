@@ -75,13 +75,13 @@ contract Ownable {
 
 contract JustHero is Ownable {
     using SafeMath for uint256;
-    uint256 public constant DEVELOPER_RATE = 40; //per thousand
-    uint256 public constant MARKETING_RATE = 40;
-    uint256 public constant REFERENCE_RATE = 180;
-    uint256 public constant REFERENCE_LEVEL1_RATE = 100;
-    uint256 public constant REFERENCE_LEVEL2_RATE = 50;
-    uint256 public constant REFERENCE_LEVEL3_RATE = 30;
-    uint256 public constant REFERENCE_SELF_RATE = 0;
+    uint256 public constant DEVELOPER_RATE = 40; //per thousand - 4%
+    uint256 public constant MARKETING_RATE = 40; // - 04%
+    uint256 public constant REFERENCE_RATE = 180; // - 18%
+    uint256 public constant REFERENCE_LEVEL1_RATE = 100; // - 10%
+    uint256 public constant REFERENCE_LEVEL2_RATE = 50; // 5%
+    uint256 public constant REFERENCE_LEVEL3_RATE = 30; // 3%
+    uint256 public constant REFERENCE_SELF_RATE = 0; // 0%
     uint256 public constant MINIMUM = 100000000; //Minimum investment : 100 TRX
     uint256 public constant REFERRER_CODE = 6666;
 
@@ -118,32 +118,48 @@ contract JustHero is Ownable {
     function checkIn() public {
     }
 
+
+    // Метод модифицирует адрес Marketing Account
     function setMarketingAccount(address _newMarketingAccount) public onlyOwner {
         require(_newMarketingAccount != address(0));
         marketingAccount_ = _newMarketingAccount;
     }
 
+    // Метод отдает MarketingAccount
     function getMarketingAccount() public view onlyOwner returns (address) {
         return marketingAccount_;
     }
 
+
+    /**
+    Метод изменяет адрес _newDeveloperAccount
+    */
     function setDeveloperAccount(address _newDeveloperAccount) public onlyOwner {
         require(_newDeveloperAccount != address(0));
         developerAccount_ = _newDeveloperAccount;
     }
 
+    // Метод отдает DeveloperAccount
     function getDeveloperAccount() public view onlyOwner returns (address) {
         return developerAccount_;
     }
 
+    /**
+    Метод модифицирует адрес референс аккаунта
+    */
     function setReferenceAccount(address _newReferenceAccount) public onlyOwner {
         require(_newReferenceAccount != address(0));
         referenceAccount_ = _newReferenceAccount;
     }
 
+
+    /**
+    Метод отдает адрес референс аккаунта
+    */
     function getReferenceAccount() public view onlyOwner returns (address) {
         return referenceAccount_;
     }
+
 
     function _init() private {
         latestReferrerCode = REFERRER_CODE;
@@ -154,6 +170,8 @@ contract JustHero is Ownable {
         investmentPlans_.push(Objects.Plan(250, 0)); //25% daily, lifetime
     }
 
+
+    // Метод отдает текущий инвест план
     function getCurrentPlans() public view returns (uint256[] memory, uint256[] memory, uint256[] memory) {
         uint256[] memory ids = new uint256[](investmentPlans_.length);
         uint256[] memory interests = new uint256[](investmentPlans_.length);
@@ -172,14 +190,18 @@ contract JustHero is Ownable {
         );
     }
 
+
+    // Метод отдает общее количество инвестированныйх средств
     function getTotalInvestments() public onlyOwner view returns (uint256){
         return totalInvestments_;
     }
 
+    // метод отдает количество средст на балансе
     function getBalance() public view returns (uint256) {
         return address(this).balance;
     }
 
+    // метод отдает
     function getUIDByAddress(address _addr) public view returns (uint256) {
         return address2UID[_addr];
     }
@@ -261,68 +283,6 @@ contract JustHero is Ownable {
         );
     }
 
-    function _addInvestor(address _addr, uint256 _referrerCode) private returns (uint256) {
-        if (_referrerCode >= REFERRER_CODE) {
-            if (uid2Investor[_referrerCode].addr == address(0)) {
-                _referrerCode = 0;
-            }
-        } else {
-            _referrerCode = 0;
-        }
-        address addr = _addr;
-        latestReferrerCode = latestReferrerCode.add(1);
-        address2UID[addr] = latestReferrerCode;
-        uid2Investor[latestReferrerCode].addr = addr;
-        uid2Investor[latestReferrerCode].referrer = _referrerCode;
-        uid2Investor[latestReferrerCode].planCount = 0;
-        if (_referrerCode >= REFERRER_CODE) {
-            uint256 _ref1 = _referrerCode;
-            uint256 _ref2 = uid2Investor[_ref1].referrer;
-            uint256 _ref3 = uid2Investor[_ref2].referrer;
-            uid2Investor[_ref1].level1RefCount = uid2Investor[_ref1].level1RefCount.add(1);
-            if (_ref2 >= REFERRER_CODE) {
-                uid2Investor[_ref2].level2RefCount = uid2Investor[_ref2].level2RefCount.add(1);
-            }
-            if (_ref3 >= REFERRER_CODE) {
-                uid2Investor[_ref3].level3RefCount = uid2Investor[_ref3].level3RefCount.add(1);
-            }
-        }
-        return (latestReferrerCode);
-    }
-
-    function _invest(address _addr, uint256 _planId, uint256 _referrerCode, uint256 _amount) private returns (bool) {
-        require(_planId >= 0 && _planId < investmentPlans_.length, "Wrong investment plan id");
-        require(_amount >= MINIMUM, "Less than the minimum amount of deposit requirement");
-        uint256 uid = address2UID[_addr];
-        if (uid == 0) {
-            uid = _addInvestor(_addr, _referrerCode);
-            //new user
-        } else {
-            //old user
-            //do nothing, referrer is permenant
-        }
-        uint256 planCount = uid2Investor[uid].planCount;
-        Objects.Investor storage investor = uid2Investor[uid];
-        investor.plans[planCount].planId = _planId;
-        investor.plans[planCount].investmentDate = block.timestamp;
-        investor.plans[planCount].lastWithdrawalDate = block.timestamp;
-        investor.plans[planCount].investment = _amount;
-        investor.plans[planCount].currentDividends = 0;
-        investor.plans[planCount].isExpired = false;
-
-        investor.planCount = investor.planCount.add(1);
-
-        _calculateReferrerReward(uid, _amount, investor.referrer);
-
-        totalInvestments_ = totalInvestments_.add(_amount);
-
-        uint256 developerPercentage = (_amount.mul(DEVELOPER_RATE)).div(1000);
-        developerAccount_.transfer(developerPercentage);
-        uint256 marketingPercentage = (_amount.mul(MARKETING_RATE)).div(1000);
-        marketingAccount_.transfer(marketingPercentage);
-        return true;
-    }
-
     function grant(address addr, uint256 _planId) public payable {
         uint256 grantorUid = address2UID[msg.sender];
         bool isAutoAddReferrer = true;
@@ -382,6 +342,68 @@ contract JustHero is Ownable {
         }
 
         emit onWithdraw(msg.sender, withdrawalAmount);
+    }
+
+    function _addInvestor(address _addr, uint256 _referrerCode) private returns (uint256) {
+        if (_referrerCode >= REFERRER_CODE) {
+            if (uid2Investor[_referrerCode].addr == address(0)) {
+                _referrerCode = 0;
+            }
+        } else {
+            _referrerCode = 0;
+        }
+        address addr = _addr;
+        latestReferrerCode = latestReferrerCode.add(1);
+        address2UID[addr] = latestReferrerCode;
+        uid2Investor[latestReferrerCode].addr = addr;
+        uid2Investor[latestReferrerCode].referrer = _referrerCode;
+        uid2Investor[latestReferrerCode].planCount = 0;
+        if (_referrerCode >= REFERRER_CODE) {
+            uint256 _ref1 = _referrerCode;
+            uint256 _ref2 = uid2Investor[_ref1].referrer;
+            uint256 _ref3 = uid2Investor[_ref2].referrer;
+            uid2Investor[_ref1].level1RefCount = uid2Investor[_ref1].level1RefCount.add(1);
+            if (_ref2 >= REFERRER_CODE) {
+                uid2Investor[_ref2].level2RefCount = uid2Investor[_ref2].level2RefCount.add(1);
+            }
+            if (_ref3 >= REFERRER_CODE) {
+                uid2Investor[_ref3].level3RefCount = uid2Investor[_ref3].level3RefCount.add(1);
+            }
+        }
+        return (latestReferrerCode);
+    }
+
+    function _invest(address _addr, uint256 _planId, uint256 _referrerCode, uint256 _amount) private returns (bool) {
+        require(_planId >= 0 && _planId < investmentPlans_.length, "Wrong investment plan id");
+        require(_amount >= MINIMUM, "Less than the minimum amount of deposit requirement");
+        uint256 uid = address2UID[_addr];
+        if (uid == 0) {
+            uid = _addInvestor(_addr, _referrerCode);
+            //new user
+        } else {
+            //old user
+            //do nothing, referrer is permanent
+        }
+        uint256 planCount = uid2Investor[uid].planCount;
+        Objects.Investor storage investor = uid2Investor[uid];
+        investor.plans[planCount].planId = _planId;
+        investor.plans[planCount].investmentDate = block.timestamp;
+        investor.plans[planCount].lastWithdrawalDate = block.timestamp;
+        investor.plans[planCount].investment = _amount;
+        investor.plans[planCount].currentDividends = 0;
+        investor.plans[planCount].isExpired = false;
+
+        investor.planCount = investor.planCount.add(1);
+
+        _calculateReferrerReward(uid, _amount, investor.referrer);
+
+        totalInvestments_ = totalInvestments_.add(_amount);
+
+        uint256 developerPercentage = (_amount.mul(DEVELOPER_RATE)).div(1000);
+        developerAccount_.transfer(developerPercentage);
+        uint256 marketingPercentage = (_amount.mul(MARKETING_RATE)).div(1000);
+        marketingAccount_.transfer(marketingPercentage);
+        return true;
     }
 
     function _calculateDividends(uint256 _amount, uint256 _dailyInterestRate, uint256 _now, uint256 _start) private pure returns (uint256) {
