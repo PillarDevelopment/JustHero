@@ -76,7 +76,7 @@ contract Ownable {
 contract JustHero is Ownable {
     using SafeMath for uint256;
     uint256 public constant DEVELOPER_RATE = 40; //per thousand - 4%
-    uint256 public constant MARKETING_RATE = 40; // - 04%
+    uint256 public constant MARKETING_RATE = 40; // - 4%
     uint256 public constant REFERENCE_RATE = 180; // - 18%
     uint256 public constant REFERENCE_LEVEL1_RATE = 100; // - 10%
     uint256 public constant REFERENCE_LEVEL2_RATE = 50; // 5%
