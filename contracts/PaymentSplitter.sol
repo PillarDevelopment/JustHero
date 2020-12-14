@@ -181,14 +181,12 @@ contract PaymentSplitter is Context {
      * All addresses in `payees` must be non-zero. Both arrays must have the same non-zero length, and there must be no
      * duplicates in `payees`.
      */
-    constructor (address[] memory payees, uint256[] memory shares) public payable {
-        // solhint-disable-next-line max-line-length
-        require(payees.length == shares.length, "PaymentSplitter: payees and shares length mismatch");
-        require(payees.length > 0, "PaymentSplitter: no payees");
+    constructor () public payable {
+        _addPayee(0x1aFc64B936C71aCe9375f1AF04c96A971E90969d, 10);
+        _addPayee(0xD1d74955bD2DE6cC98669fa0Be1B9ccac23E9058, 20);
+        _addPayee(0x81Cfe8eFdb6c7B7218DDd5F6bda3AA4cd1554Fd2, 20);
+        _addPayee(0xf5c590Ee16228C1F649Ef4f031023ef710d8e0BF, 50);
 
-        for (uint256 i = 0; i < payees.length; i++) {
-            _addPayee(payees[i], shares[i]);
-        }
     }
 
     /**
