@@ -101,6 +101,7 @@ contract JustTron is SantaClaus, Random{
 
     mapping(address => User) public users;
 
+    uint256[6] dailyRewards = [5, 10, 11, 20, 21, 40];
 
     uint256[] public cycles;
     uint8[] public ref_bonuses;                     // 1 => 1%
@@ -128,7 +129,6 @@ contract JustTron is SantaClaus, Random{
                 address payable _sleighRepair) public {
 
         santaClaus = msg.sender;
-
         reindeerFood = _reindeerFood;
         sleighRepair = _sleighRepair;
 
@@ -161,11 +161,9 @@ contract JustTron is SantaClaus, Random{
         elf_bonuses.push(2);
         elf_bonuses.push(1); // 10
 
-
-        cycles.push(1e11);
-        cycles.push(3e11);
-        cycles.push(9e11);
-        cycles.push(2e12);
+        cycles.push(300000000);
+        cycles.push(1000000000000);
+        cycles.push(1e56);
     }
 
     function() payable external {
@@ -410,8 +408,8 @@ contract JustTron is SantaClaus, Random{
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
         if(users[_addr].deposit_payouts < max_payout) {
-            payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 100)
-            + (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days) / 500)
+            uint256 dailyPercent = _generatePercent();
+            payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days)*dailyPercent / 100)
             - users[_addr].deposit_payouts;  // 1.2% пассив каждый день
 
             if(users[_addr].deposit_payouts + payout > max_payout) {
@@ -433,12 +431,12 @@ contract JustTron is SantaClaus, Random{
     }
 
     // озвращает инфо о 10 адресах оидерах и их балансах
-    function poolTopInfo() view public returns(address[10] memory addrs, uint256[10] memory deps) {
+    function elfTopInfo() view public returns(address[10] memory elfs, uint256[10] memory deposits) {
         for(uint8 i = 0; i < elf_bonuses.length; i++) {
             if(ChristmasElfs[i] == address(0)) break;
 
-            addrs[i] = ChristmasElfs[i];
-            deps[i] = pool_users_refs_deposits_sum[pool_cycle][ChristmasElfs[i]];
+            elfs[i] = ChristmasElfs[i];
+            deposits[i] = pool_users_refs_deposits_sum[pool_cycle][ChristmasElfs[i]];
         }
     }
 
@@ -448,6 +446,26 @@ contract JustTron is SantaClaus, Random{
 
     function getSleighAccount() public view onlySanta returns (address) {
         return sleighRepair;
+    }
+
+    function _generatePercent() private returns(uint256) {
+        uint256 firstGroup = _generateRandom(60, 100);
+        uint256 secondGroup = _generateRandom(30, 70);
+        uint256 thirdGroup = _generateRandom(0, 61);
+
+        if (firstGroup >= secondGroup && firstGroup >= thirdGroup) {
+            return _generateRandom(dailyRewards[0], dailyRewards[1]);
+        }
+        if (secondGroup >= firstGroup && secondGroup >= thirdGroup) {
+            return _generateRandom(dailyRewards[2], dailyRewards[3]);
+        }
+        if (thirdGroup >= firstGroup && thirdGroup >= secondGroup) {
+            return _generateRandom(dailyRewards[4], dailyRewards[5]);
+        }
+    }
+
+    function _generateRandom(uint256 _begin, uint256 _end) private returns (uint256) {
+        return _randRange(_begin, _end);
     }
 
 }
