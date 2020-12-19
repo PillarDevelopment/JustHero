@@ -398,19 +398,19 @@ contract JustTron is SantaClaus, Random{
         }
     }
 
-    // максимальный доход 400 %
+    // максимальный доход 400 % // todo
     function maxPayoutOf(uint256 _amount) pure public returns(uint256) {
         return _amount * 40 / 10; // 350% для изменения цикла
     }
 
     //возвращает текущий депозит и максимальный доход за вычетом выводов и наград для адреса
-    function payoutOf(address _addr) view public returns(uint256 payout, uint256 max_payout) {
+    function payoutOf(address _addr) public returns(uint256 payout, uint256 max_payout) {
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
         if(users[_addr].deposit_payouts < max_payout) {
             uint256 dailyPercent = _generatePercent();
             payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days)*dailyPercent / 100)
-            - users[_addr].deposit_payouts;  // 1.2% пассив каждый день
+            - users[_addr].deposit_payouts;  // random reward
 
             if(users[_addr].deposit_payouts + payout > max_payout) {
                 payout = max_payout - users[_addr].deposit_payouts;
