@@ -77,7 +77,7 @@ contract Random {
     }
 }
 
-contract JustTron is SantaClaus, Random{
+contract TronSanta is SantaClaus, Random{
     using SafeMath for uint256;
 
     struct User {
@@ -180,7 +180,9 @@ contract JustTron is SantaClaus, Random{
         sleighRepair = _newSleighRepair;
     }
 
-    // изменение линий
+    /**
+    @dev New Upline creation
+    */
     function _setUpline(address _addr, address _upline) private {
         if(users[_addr].upline == address(0) && _upline != _addr && _addr != santaClaus && (users[_upline].deposit_time > 0 || _upline == santaClaus)) {
             users[_addr].upline = _upline;
@@ -199,12 +201,10 @@ contract JustTron is SantaClaus, Random{
         }
     }
 
-    // метод внесения депозита
-    // проверяет доступный ввод исходя из возможного депозита по циклу
-    // начисляет награду пригласившему - 10%
-    // доабвляет гаргарду в пул лидеров
-    // отправляет комиссию в фонд и админам
-    //
+    /**
+    @dev Add new deposit
+    @ check available withdraw, add reward to referer, add reward in elf's pool, transfer food and parts for Santa
+    */
     function _deposit(address _addr, uint256 _amount) private {
         require(users[_addr].upline != address(0) || _addr == santaClaus, "No upline");
 
@@ -242,7 +242,9 @@ contract JustTron is SantaClaus, Random{
         sleighRepair.transfer(_amount / 20);
     }
 
-    // 3% с каждого депозита отстетивагются в пул лидеров
+    /**
+    @dev accrual 3% to elf's pool
+    */
     function _pollDeposits(address _addr, uint256 _amount) private {
         pool_balance += _amount * 3 / 100; //  Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.⠀
 
@@ -281,7 +283,9 @@ contract JustTron is SantaClaus, Random{
         }
     }
 
-    // начисление реферальных вознаграждений линий в структуре
+    /**
+    @dev accrual referral rewards to upline
+    */
     function _refPayout(address _addr, uint256 _amount) private {
         address up = users[_addr].upline;
 
@@ -300,7 +304,9 @@ contract JustTron is SantaClaus, Random{
         }
     }
 
-    // метод накапливает 10 лидерам их награды и очищает список
+    /**
+    @dev distribution of rewards to the most hardworking elves
+    */
     function _drawPool() private {
         pool_last_draw = uint40(block.timestamp);
         pool_cycle++;
@@ -398,12 +404,16 @@ contract JustTron is SantaClaus, Random{
         }
     }
 
-    // максимальный доход 400 % // todo
+    /**
+    @dev max result in circle - 400%
+    */
     function maxPayoutOf(uint256 _amount) pure public returns(uint256) {
         return _amount * 40 / 10; // 350% для изменения цикла
     }
 
-    //возвращает текущий депозит и максимальный доход за вычетом выводов и наград для адреса
+    /**
+    @dev return current deposit and max income
+    */
     function payoutOf(address _addr) public returns(uint256 payout, uint256 max_payout) {
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
@@ -426,11 +436,16 @@ contract JustTron is SantaClaus, Random{
         return (users[_addr].referrals, users[_addr].total_deposits, users[_addr].total_payouts, users[_addr].total_structure);
     }
 
+    /**
+    @dev aggregation information about key params
+    */
     function contractInfo() view public returns(uint256 _total_users, uint256 _total_deposited, uint256 _total_withdraw, uint40 _pool_last_draw, uint256 _pool_balance, uint256 _pool_lider) {
         return (total_users, total_deposited, total_withdraw, pool_last_draw, pool_balance, pool_users_refs_deposits_sum[pool_cycle][ChristmasElfs[0]]);
     }
 
-    // озвращает инфо о 10 адресах оидерах и их балансах
+    /**
+    @dev return 2 arrays to addresses most hardworking elfs and their deposits
+    */
     function elfTopInfo() view public returns(address[10] memory elfs, uint256[10] memory deposits) {
         for(uint8 i = 0; i < elf_bonuses.length; i++) {
             if(ChristmasElfs[i] == address(0)) break;
