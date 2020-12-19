@@ -1,4 +1,4 @@
-pragma solidity 0.4.25;
+pragma solidity >=0.4.23 <0.6.0;
 
 library SafeMath {
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -88,9 +88,9 @@ contract TronFast is Ownable {
     uint256 public latestReferrerCode;
     uint256 private totalInvestments_;
 
-    address private developerAccount_;
-    address private marketingAccount_;
-    address private referenceAccount_;
+    address payable private developerAccount_;
+    address payable private marketingAccount_;
+    address payable private referenceAccount_;
 
     mapping(address => uint256) public address2UID;
     mapping(uint256 => Objects.Investor) public uid2Investor;
@@ -120,7 +120,7 @@ contract TronFast is Ownable {
 
 
     // Метод модифицирует адрес Marketing Account
-    function setMarketingAccount(address _newMarketingAccount) public onlyOwner {
+    function setMarketingAccount(address payable _newMarketingAccount) public onlyOwner {
         require(_newMarketingAccount != address(0));
         marketingAccount_ = _newMarketingAccount;
     }
@@ -134,7 +134,7 @@ contract TronFast is Ownable {
     /**
     Метод изменяет адрес _newDeveloperAccount
     */
-    function setDeveloperAccount(address _newDeveloperAccount) public onlyOwner {
+    function setDeveloperAccount(address payable _newDeveloperAccount) public onlyOwner {
         require(_newDeveloperAccount != address(0));
         developerAccount_ = _newDeveloperAccount;
     }
@@ -147,7 +147,7 @@ contract TronFast is Ownable {
     /**
     Метод модифицирует адрес референс аккаунта
     */
-    function setReferenceAccount(address _newReferenceAccount) public onlyOwner {
+    function setReferenceAccount(address payable _newReferenceAccount) public onlyOwner {
         require(_newReferenceAccount != address(0));
         referenceAccount_ = _newReferenceAccount;
     }

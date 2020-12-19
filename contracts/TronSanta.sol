@@ -1,6 +1,6 @@
 // ref https://tronscan.org/#/contract/THnSDgi6Do7Kvqhys7PndZvPVGzGRN4Y7c/code
 
-pragma solidity ^0.5.12;
+pragma solidity >=0.4.23 <0.6.0;
 
 library SafeMath {
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -30,7 +30,7 @@ library SafeMath {
 }
 
 contract SantaClaus {
-    address payable private santaClaus;
+    address internal santaClaus;
 
     event onSantaTransferred(address indexed previousSanta, address indexed newSanta);
     constructor() public {
@@ -65,7 +65,7 @@ contract Random {
     }
 
     function _randRange(uint256 min, uint256 max) internal returns (uint256) {
-        return uint256(keccak256(_rand())) % (max - min + 1) + min;
+        return uint256(keccak256(abi.encodePacked(_rand()))) % (max - min + 1) + min;
     }
 
     function _randChance(uint percent) internal returns (bool) {
@@ -100,6 +100,7 @@ contract JustTron is SantaClaus, Random{
     address payable private sleighRepair;
 
     mapping(address => User) public users;
+
 
     uint256[] public cycles;
     uint8[] public ref_bonuses;                     // 1 => 1%
@@ -171,30 +172,15 @@ contract JustTron is SantaClaus, Random{
         _deposit(msg.sender, msg.value);
     }
 
-
-
-
-    function getStablesDeer() public view onlySanta returns (address) {
-        return reindeerFood;
-    }
-
-    function setStablesDeer(address _newStable) public onlySanta {
+    function setStablesDeer(address payable _newStable) public onlySanta {
         require(_newStable != address(0));
         reindeerFood = _newStable;
     }
 
-    function getDeveloperAccount() public view onlySanta returns (address) {
-        return developerAccount_;
+    function setSleighAccount(address payable _newSleighRepair) public onlySanta {
+        require(_newSleighRepair != address(0));
+        sleighRepair = _newSleighRepair;
     }
-
-    function setReferenceAccount(address _newReferenceAccount) public onlySanta {
-        require(_newReferenceAccount != address(0));
-        referenceAccount_ = _newReferenceAccount;
-    }
-
-
-
-
 
     // изменение линий
     function _setUpline(address _addr, address _upline) private {
@@ -214,7 +200,6 @@ contract JustTron is SantaClaus, Random{
             }
         }
     }
-
 
     // метод внесения депозита
     // проверяет доступный ввод исходя из возможного депозита по циклу
@@ -455,6 +440,14 @@ contract JustTron is SantaClaus, Random{
             addrs[i] = ChristmasElfs[i];
             deps[i] = pool_users_refs_deposits_sum[pool_cycle][ChristmasElfs[i]];
         }
+    }
+
+    function getStablesDeer() public view onlySanta returns (address) {
+        return reindeerFood;
+    }
+
+    function getSleighAccount() public view onlySanta returns (address) {
+        return sleighRepair;
     }
 
 }

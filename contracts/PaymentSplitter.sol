@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity >=0.4.23 <0.6.0;
 
 contract Context {
     // Empty internal constructor, to prevent people from mistakenly deploying
