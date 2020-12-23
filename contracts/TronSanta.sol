@@ -1,4 +1,3 @@
-// ref https://tronscan.org/#/contract/THnSDgi6Do7Kvqhys7PndZvPVGzGRN4Y7c/code
 
 pragma solidity >=0.4.23 <0.6.0;
 
@@ -99,23 +98,21 @@ contract TronSanta is SantaClaus, Random{
     address payable private reindeerFood;
     address payable private sleighRepair;
 
-    mapping(address => User) public users;
-
-    uint256[6] dailyRewards = [5, 10, 11, 20, 21, 40];
-
-    uint256[] public cycles;
-    uint8[] public ref_bonuses;                     // 1 => 1%
-
-    uint8[] public elf_bonuses;                    // 1 => 1%
     uint40 public pool_last_draw = uint40(block.timestamp);
     uint256 public pool_cycle;
     uint256 public pool_balance;
-    mapping(uint256 => mapping(address => uint256)) public pool_users_refs_deposits_sum;
-    mapping(uint8 => address) public ChristmasElfs; // 5 топовых участника в день - берется с накопленого в день пула
-
     uint256 public total_users = 1;
     uint256 public total_deposited;
     uint256 public total_withdraw;
+
+    uint256[6] dailyRewards = [5, 10, 11, 20, 21, 40];
+    uint256[] public cycles;
+    uint8[] public ref_bonuses;
+    uint8[] public elf_bonuses;
+
+    mapping(uint256 => mapping(address => uint256)) public pool_users_refs_deposits_sum;
+    mapping(uint8 => address) public ChristmasElfs;
+    mapping(address => User) public users;
 
     event Upline(address indexed addr, address indexed upline);
     event NewDeposit(address indexed addr, uint256 amount);
@@ -132,24 +129,10 @@ contract TronSanta is SantaClaus, Random{
         reindeerFood = _reindeerFood;
         sleighRepair = _sleighRepair;
 
-        // Ежедневные комиссионные, основанные на ежедневном доходе партнеров, для каждого прямого партнера активирован 1 уровень, максимум 20 уровней, см. Ниже
-        ref_bonuses.push(30);
         ref_bonuses.push(10);
-        ref_bonuses.push(10);
-        ref_bonuses.push(10);
-        ref_bonuses.push(10);
-        ref_bonuses.push(8);
-        ref_bonuses.push(8);
-        ref_bonuses.push(8);
-        ref_bonuses.push(8);
-        ref_bonuses.push(8);
         ref_bonuses.push(5);
-        ref_bonuses.push(5);
-        ref_bonuses.push(5);
-        ref_bonuses.push(5);
-        ref_bonuses.push(5); // 15
+        ref_bonuses.push(3);
 
-        // Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 10 лучших спонсоров по объему.
         elf_bonuses.push(30);
         elf_bonuses.push(20);
         elf_bonuses.push(15);
@@ -159,7 +142,7 @@ contract TronSanta is SantaClaus, Random{
         elf_bonuses.push(5);
         elf_bonuses.push(3);
         elf_bonuses.push(2);
-        elf_bonuses.push(1); // 10
+        elf_bonuses.push(1);
 
         cycles.push(300000000);
         cycles.push(1000000000000);
@@ -227,17 +210,14 @@ contract TronSanta is SantaClaus, Random{
         emit NewDeposit(_addr, _amount);
 
         if(users[_addr].upline != address(0)) {
-            users[users[_addr].upline].direct_bonus += _amount / 10; // начисление 10% прямого бонуса вышестоящему участнику - 10% Прямая комиссия
-
+            users[users[_addr].upline].direct_bonus += _amount / 10;
             emit DirectPayout(users[_addr].upline, _addr, _amount / 10);
         }
-
-        _pollDeposits(_addr, _amount); // наполнение пула
+        _pollDeposits(_addr, _amount);
 
         if(pool_last_draw + 1 days < block.timestamp) {
             _drawPool();
         }
-
         reindeerFood.transfer(_amount / 20);
         sleighRepair.transfer(_amount / 20);
     }
@@ -246,22 +226,18 @@ contract TronSanta is SantaClaus, Random{
     @dev accrual 3% to elf's pool
     */
     function _pollDeposits(address _addr, uint256 _amount) private {
-        pool_balance += _amount * 3 / 100; //  Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 4 лучших спонсоров по объему.⠀
-
+        pool_balance += _amount * 3 / 100;
         address upline = users[_addr].upline;
 
         if(upline == address(0)) return;
-
         pool_users_refs_deposits_sum[pool_cycle][upline] += _amount;
 
         for(uint8 i = 0; i < elf_bonuses.length; i++) {
             if(ChristmasElfs[i] == upline) break;
-
             if(ChristmasElfs[i] == address(0)) {
                 ChristmasElfs[i] = upline;
                 break;
             }
-
             if(pool_users_refs_deposits_sum[pool_cycle][upline] > pool_users_refs_deposits_sum[pool_cycle][ChristmasElfs[i]]) {
                 for(uint8 j = i + 1; j < elf_bonuses.length; j++) {
                     if(ChristmasElfs[j] == upline) {
@@ -271,13 +247,10 @@ contract TronSanta is SantaClaus, Random{
                         break;
                     }
                 }
-
                 for(uint8 j = uint8(elf_bonuses.length - 1); j > i; j--) {
                     ChristmasElfs[j] = ChristmasElfs[j - 1];
                 }
-
                 ChristmasElfs[i] = upline;
-
                 break;
             }
         }
@@ -293,13 +266,10 @@ contract TronSanta is SantaClaus, Random{
             if(up == address(0)) break; // не для админа
 
             if(users[up].referrals >= i + 1) {
-                uint256 bonus = _amount * ref_bonuses[i] / 100; // начисление бонуса комиссионого 30-3%(20 уровней)
-
-                users[up].match_bonus += bonus; // здесь кучастнику происхоит сумирование бонусов в соответствие с
-
+                uint256 bonus = _amount * ref_bonuses[i] / 100;
+                users[up].match_bonus += bonus;
                 emit MatchPayout(up, _addr, bonus);
             }
-
             up = users[up].upline;
         }
     }
@@ -311,8 +281,7 @@ contract TronSanta is SantaClaus, Random{
         pool_last_draw = uint40(block.timestamp);
         pool_cycle++;
 
-        uint256 draw_amount = pool_balance / 10; // 10%  - Ежедневный рейтинг лучших пулов 3% от ВСЕХ депозитов, отведенных в пуле, каждые 24 часа 10% пула распределяется среди 10 лучших спонсоров по объему.⠀
-
+        uint256 draw_amount = pool_balance / 10;
         for(uint8 i = 0; i < elf_bonuses.length; i++) {
             if(ChristmasElfs[i] == address(0)) break;
 
@@ -335,16 +304,13 @@ contract TronSanta is SantaClaus, Random{
     }
 
     function withdraw() public {
-        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender); // текущий депозит и макс вывод от депозита
-
-        require(users[msg.sender].payouts < max_payout, "Full payouts"); // ывел весь депозит
-
+        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender);
+        require(users[msg.sender].payouts < max_payout, "Full payouts");
         // Deposit payout
         if(to_payout > 0) {
             if(users[msg.sender].payouts + to_payout > max_payout) {
                 to_payout = max_payout - users[msg.sender].payouts;
             }
-
             users[msg.sender].deposit_payouts += to_payout;
             users[msg.sender].payouts += to_payout;
 
@@ -358,7 +324,6 @@ contract TronSanta is SantaClaus, Random{
             if(users[msg.sender].payouts + direct_bonus > max_payout) {
                 direct_bonus = max_payout - users[msg.sender].payouts;
             }
-
             users[msg.sender].direct_bonus -= direct_bonus;
             users[msg.sender].payouts += direct_bonus;
             to_payout += direct_bonus;
@@ -371,7 +336,6 @@ contract TronSanta is SantaClaus, Random{
             if(users[msg.sender].payouts + pool_bonus > max_payout) {
                 pool_bonus = max_payout - users[msg.sender].payouts;
             }
-
             users[msg.sender].pool_bonus -= pool_bonus;
             users[msg.sender].payouts += pool_bonus;
             to_payout += pool_bonus;
@@ -384,7 +348,6 @@ contract TronSanta is SantaClaus, Random{
             if(users[msg.sender].payouts + match_bonus > max_payout) {
                 match_bonus = max_payout - users[msg.sender].payouts;
             }
-
             users[msg.sender].match_bonus -= match_bonus;
             users[msg.sender].payouts += match_bonus;
             to_payout += match_bonus;
@@ -394,9 +357,7 @@ contract TronSanta is SantaClaus, Random{
 
         users[msg.sender].total_payouts += to_payout;
         total_withdraw += to_payout;
-
         msg.sender.transfer(to_payout);
-
         emit Withdraw(msg.sender, to_payout);
 
         if(users[msg.sender].payouts >= max_payout) {
@@ -408,7 +369,7 @@ contract TronSanta is SantaClaus, Random{
     @dev max result in circle - 400%
     */
     function maxPayoutOf(uint256 _amount) pure public returns(uint256) {
-        return _amount * 40 / 10; // 350% для изменения цикла
+        return _amount * 40 / 10;
     }
 
     /**
