@@ -123,7 +123,7 @@ contract TronSanta is SantaClaus, Random{
     event LimitReached(address indexed addr, uint256 amount);
 
     constructor(address payable _reindeerFood,
-        address payable _sleighRepair) public {
+                address payable _sleighRepair) public {
 
         santaClaus = msg.sender;
         reindeerFood = _reindeerFood;
@@ -149,24 +149,114 @@ contract TronSanta is SantaClaus, Random{
         cycles.push(1e56);
     }
 
+    /******************************** GAS USED METHODS ********************************************/
+
     function() payable external {
         _deposit(msg.sender, msg.value);
     }
 
+    /**
+    @dev Setter for reindeerFood address
+    */
     function setStablesDeer(address payable _newStable) public onlySanta {
         require(_newStable != address(0));
         reindeerFood = _newStable;
     }
 
+    /**
+    @dev Setter for sleighRepair address
+    */
     function setSleighAccount(address payable _newSleighRepair) public onlySanta {
         require(_newSleighRepair != address(0));
         sleighRepair = _newSleighRepair;
     }
 
     /**
+    @dev msg.sender add new deposit
+    */
+    function deposit(address _upLine) payable public {
+        _setUpLine(msg.sender, _upLine);
+        _deposit(msg.sender, msg.value);
+    }
+
+    /**
+    @dev msg.sender withdraw available amount
+    */
+    function withdraw() public {
+        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender);
+        require(users[msg.sender].payouts < max_payout, "Full payouts");
+        // Deposit payout
+        if(to_payout > 0) {
+            if(users[msg.sender].payouts + to_payout > max_payout) {
+                to_payout = max_payout - users[msg.sender].payouts;
+            }
+            users[msg.sender].deposit_payouts += to_payout;
+            users[msg.sender].payouts += to_payout;
+
+            _refPayout(msg.sender, to_payout);
+        }
+
+        // Direct payout
+        if(users[msg.sender].payouts < max_payout && users[msg.sender].direct_bonus > 0) {
+            uint256 direct_bonus = users[msg.sender].direct_bonus;
+
+            if(users[msg.sender].payouts + direct_bonus > max_payout) {
+                direct_bonus = max_payout - users[msg.sender].payouts;
+            }
+            users[msg.sender].direct_bonus -= direct_bonus;
+            users[msg.sender].payouts += direct_bonus;
+            to_payout += direct_bonus;
+        }
+
+        // Pool payout
+        if(users[msg.sender].payouts < max_payout && users[msg.sender].pool_bonus > 0) {
+            uint256 pool_bonus = users[msg.sender].pool_bonus;
+
+            if(users[msg.sender].payouts + pool_bonus > max_payout) {
+                pool_bonus = max_payout - users[msg.sender].payouts;
+            }
+            users[msg.sender].pool_bonus -= pool_bonus;
+            users[msg.sender].payouts += pool_bonus;
+            to_payout += pool_bonus;
+        }
+
+        // Match payout
+        if(users[msg.sender].payouts < max_payout && users[msg.sender].match_bonus > 0) {
+            uint256 match_bonus = users[msg.sender].match_bonus;
+
+            if(users[msg.sender].payouts + match_bonus > max_payout) {
+                match_bonus = max_payout - users[msg.sender].payouts;
+            }
+            users[msg.sender].match_bonus -= match_bonus;
+            users[msg.sender].payouts += match_bonus;
+            to_payout += match_bonus;
+        }
+
+        require(to_payout > 0, "Zero payout");
+
+        users[msg.sender].total_payouts += to_payout;
+        total_withdraw += to_payout;
+        msg.sender.transfer(to_payout);
+        emit Withdraw(msg.sender, to_payout);
+
+        if(users[msg.sender].payouts >= max_payout) {
+            emit LimitReached(msg.sender, users[msg.sender].payouts);
+        }
+    }
+
+    /**
+   @dev max result in circle - 400%
+   */
+    function maxPayoutOf(uint256 _amount) pure public returns(uint256) {
+        return _amount * 40 / 10;
+    }
+
+    /******************************** INTERNAL METHODS ********************************************/
+
+    /**
     @dev New Upline creation
     */
-    function _setUpline(address _addr, address _upline) private {
+    function _setUpLine(address _addr, address _upline) private {
         if(users[_addr].upline == address(0) && _upline != _addr && _addr != santaClaus && (users[_upline].deposit_time > 0 || _upline == santaClaus)) {
             users[_addr].upline = _upline;
             users[_upline].referrals++;
@@ -298,83 +388,31 @@ contract TronSanta is SantaClaus, Random{
         }
     }
 
-    function deposit(address _upline) payable public {
-        _setUpline(msg.sender, _upline);
-        _deposit(msg.sender, msg.value);
-    }
+    function _generatePercent() private returns(uint256) {
+        uint256 firstGroup = _generateRandom(60, 100);
+        uint256 secondGroup = _generateRandom(30, 75);
+        uint256 thirdGroup = _generateRandom(0, 65);
 
-    function withdraw() public {
-        (uint256 to_payout, uint256 max_payout) = this.payoutOf(msg.sender);
-        require(users[msg.sender].payouts < max_payout, "Full payouts");
-        // Deposit payout
-        if(to_payout > 0) {
-            if(users[msg.sender].payouts + to_payout > max_payout) {
-                to_payout = max_payout - users[msg.sender].payouts;
-            }
-            users[msg.sender].deposit_payouts += to_payout;
-            users[msg.sender].payouts += to_payout;
-
-            _refPayout(msg.sender, to_payout);
+        if (firstGroup >= secondGroup && firstGroup >= thirdGroup) {
+            return _generateRandom(dailyRewards[0], dailyRewards[1]);
         }
-
-        // Direct payout
-        if(users[msg.sender].payouts < max_payout && users[msg.sender].direct_bonus > 0) {
-            uint256 direct_bonus = users[msg.sender].direct_bonus;
-
-            if(users[msg.sender].payouts + direct_bonus > max_payout) {
-                direct_bonus = max_payout - users[msg.sender].payouts;
-            }
-            users[msg.sender].direct_bonus -= direct_bonus;
-            users[msg.sender].payouts += direct_bonus;
-            to_payout += direct_bonus;
+        if (secondGroup >= firstGroup && secondGroup >= thirdGroup) {
+            return _generateRandom(dailyRewards[2], dailyRewards[3]);
         }
-
-        // Pool payout
-        if(users[msg.sender].payouts < max_payout && users[msg.sender].pool_bonus > 0) {
-            uint256 pool_bonus = users[msg.sender].pool_bonus;
-
-            if(users[msg.sender].payouts + pool_bonus > max_payout) {
-                pool_bonus = max_payout - users[msg.sender].payouts;
-            }
-            users[msg.sender].pool_bonus -= pool_bonus;
-            users[msg.sender].payouts += pool_bonus;
-            to_payout += pool_bonus;
-        }
-
-        // Match payout
-        if(users[msg.sender].payouts < max_payout && users[msg.sender].match_bonus > 0) {
-            uint256 match_bonus = users[msg.sender].match_bonus;
-
-            if(users[msg.sender].payouts + match_bonus > max_payout) {
-                match_bonus = max_payout - users[msg.sender].payouts;
-            }
-            users[msg.sender].match_bonus -= match_bonus;
-            users[msg.sender].payouts += match_bonus;
-            to_payout += match_bonus;
-        }
-
-        require(to_payout > 0, "Zero payout");
-
-        users[msg.sender].total_payouts += to_payout;
-        total_withdraw += to_payout;
-        msg.sender.transfer(to_payout);
-        emit Withdraw(msg.sender, to_payout);
-
-        if(users[msg.sender].payouts >= max_payout) {
-            emit LimitReached(msg.sender, users[msg.sender].payouts);
+        if (thirdGroup >= firstGroup && thirdGroup >= secondGroup) {
+            return _generateRandom(dailyRewards[4], dailyRewards[5]);
         }
     }
+
+    function _generateRandom(uint256 _begin, uint256 _end) private returns (uint256) {
+        return _randRange(_begin, _end);
+    }
+
+    /******************************** GETTERS METHODS ********************************************/
 
     /**
-    @dev max result in circle - 400%
-    */
-    function maxPayoutOf(uint256 _amount) pure public returns(uint256) {
-        return _amount * 40 / 10;
-    }
-
-    /**
-    @dev return current deposit and max income
-    */
+     @dev return current deposit and max income
+     */
     function payoutOf(address _addr) public returns(uint256 payout, uint256 max_payout) {
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
@@ -399,10 +437,16 @@ contract TronSanta is SantaClaus, Random{
         }
     }
 
+    /**
+    @dev information about User
+    */
     function userInfo(address _addr) view public returns(address upline, uint40 deposit_time, uint256 deposit_amount, uint256 payouts, uint256 direct_bonus, uint256 pool_bonus, uint256 match_bonus) {
         return (users[_addr].upline, users[_addr].deposit_time, users[_addr].deposit_amount, users[_addr].payouts, users[_addr].direct_bonus, users[_addr].pool_bonus, users[_addr].match_bonus);
     }
 
+    /**
+    @dev aggregation information about User
+    */
     function userInfoTotals(address _addr) view public returns(uint256 referrals, uint256 total_deposits, uint256 total_payouts, uint256 total_structure) {
         return (users[_addr].referrals, users[_addr].total_deposits, users[_addr].total_payouts, users[_addr].total_structure);
     }
@@ -426,32 +470,18 @@ contract TronSanta is SantaClaus, Random{
         }
     }
 
+    /**
+    @dev return reindeerFood address
+    */
     function getStablesDeer() public view onlySanta returns (address) {
         return reindeerFood;
     }
 
+    /**
+   @dev return sleighRepair address
+   */
     function getSleighAccount() public view onlySanta returns (address) {
         return sleighRepair;
-    }
-
-    function _generatePercent() private returns(uint256) {
-        uint256 firstGroup = _generateRandom(60, 100);
-        uint256 secondGroup = _generateRandom(30, 70);
-        uint256 thirdGroup = _generateRandom(0, 61);
-
-        if (firstGroup >= secondGroup && firstGroup >= thirdGroup) {
-            return _generateRandom(dailyRewards[0], dailyRewards[1]);
-        }
-        if (secondGroup >= firstGroup && secondGroup >= thirdGroup) {
-            return _generateRandom(dailyRewards[2], dailyRewards[3]);
-        }
-        if (thirdGroup >= firstGroup && thirdGroup >= secondGroup) {
-            return _generateRandom(dailyRewards[4], dailyRewards[5]);
-        }
-    }
-
-    function _generateRandom(uint256 _begin, uint256 _end) private returns (uint256) {
-        return _randRange(_begin, _end);
     }
 
 }
