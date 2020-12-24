@@ -123,7 +123,7 @@ contract TronSanta is SantaClaus, Random{
     event LimitReached(address indexed addr, uint256 amount);
 
     constructor(address payable _reindeerFood,
-                address payable _sleighRepair) public {
+        address payable _sleighRepair) public {
 
         santaClaus = msg.sender;
         reindeerFood = _reindeerFood;
@@ -379,9 +379,19 @@ contract TronSanta is SantaClaus, Random{
         max_payout = this.maxPayoutOf(users[_addr].deposit_amount);
 
         if(users[_addr].deposit_payouts < max_payout) {
-            uint256 dailyPercent = _generatePercent();
-            payout = (users[_addr].deposit_amount * ((block.timestamp - users[_addr].deposit_time) / 1 days)*dailyPercent / 100)
-            - users[_addr].deposit_payouts;  // random reward
+
+            uint256 dailyCount = ((block.timestamp - users[_addr].deposit_time) / 1 days);
+
+            if (dailyCount == 0) {
+                payout = 0;
+            }
+            else {
+                for(uint i =0; i< dailyCount; i++) {
+                    uint256 dailyPercent = _generatePercent();
+                    payout = payout + (users[_addr].deposit_amount *dailyPercent / 100);
+                }
+                payout = payout - users[_addr].deposit_payouts;
+            }
 
             if(users[_addr].deposit_payouts + payout > max_payout) {
                 payout = max_payout - users[_addr].deposit_payouts;
