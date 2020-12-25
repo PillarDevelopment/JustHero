@@ -107,7 +107,7 @@ contract TronSanta is SantaClaus, Random{
 
     uint256[6] dailyRewards = [5, 10, 11, 20, 21, 40];
     uint256[] public cycles;
-    uint8[] public ref_bonuses;
+    uint256[] public ref_bonuses;
     uint256[] public elf_bonuses;
 
     mapping(uint256 => mapping(address => uint256)) public pool_users_refs_deposits_sum;
@@ -129,17 +129,24 @@ contract TronSanta is SantaClaus, Random{
         reindeerFood = _reindeerFood;
         sleighRepair = _sleighRepair;
 
-        ref_bonuses.push(10);
-        ref_bonuses.push(5);
-        ref_bonuses.push(3);
+        elf_bonuses.push(30);
+        elf_bonuses.push(20);
+        elf_bonuses.push(15);
+        elf_bonuses.push(10);
+        elf_bonuses.push(9);
+        elf_bonuses.push(5);
+        elf_bonuses.push(5);
+        elf_bonuses.push(3);
+        elf_bonuses.push(2);
+        elf_bonuses.push(1);
 
-        elf_bonuses.push(1000); // 10%
-        elf_bonuses.push(500); // 5%
-        elf_bonuses.push(200); // 2%
-        elf_bonuses.push(100); // 1%
-        elf_bonuses.push(50); // 0,5%
-        elf_bonuses.push(25); // 0,25%
-        elf_bonuses.push(25); // 0,25%
+        ref_bonuses.push(1000); // 10%
+        ref_bonuses.push(500); // 5%
+        ref_bonuses.push(200); // 2%
+        ref_bonuses.push(100); // 1%
+        ref_bonuses.push(50); // 0,5%
+        ref_bonuses.push(25); // 0,25%
+        ref_bonuses.push(25); // 0,25%
 
 
         cycles.push(300000000);
@@ -354,7 +361,7 @@ contract TronSanta is SantaClaus, Random{
             if(up == address(0)) break; // не для админа
 
             if(users[up].referrals >= i + 1) {
-                uint256 bonus = _amount * ref_bonuses[i] / 100;
+                uint256 bonus = _amount * ref_bonuses[i] / 10000; // 100,00
                 users[up].match_bonus += bonus;
                 emit MatchPayout(up, _addr, bonus);
             }
