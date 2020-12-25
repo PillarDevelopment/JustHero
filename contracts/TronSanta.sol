@@ -108,7 +108,7 @@ contract TronSanta is SantaClaus, Random{
     uint256[6] dailyRewards = [5, 10, 11, 20, 21, 40];
     uint256[] public cycles;
     uint8[] public ref_bonuses;
-    uint8[] public elf_bonuses;
+    uint256[] public elf_bonuses;
 
     mapping(uint256 => mapping(address => uint256)) public pool_users_refs_deposits_sum;
     mapping(uint8 => address) public ChristmasElfs;
@@ -123,7 +123,7 @@ contract TronSanta is SantaClaus, Random{
     event LimitReached(address indexed addr, uint256 amount);
 
     constructor(address payable _reindeerFood,
-                address payable _sleighRepair) public {
+        address payable _sleighRepair) public {
 
         santaClaus = msg.sender;
         reindeerFood = _reindeerFood;
@@ -133,16 +133,14 @@ contract TronSanta is SantaClaus, Random{
         ref_bonuses.push(5);
         ref_bonuses.push(3);
 
-        elf_bonuses.push(30);
-        elf_bonuses.push(20);
-        elf_bonuses.push(15);
-        elf_bonuses.push(10);
-        elf_bonuses.push(9);
-        elf_bonuses.push(5);
-        elf_bonuses.push(5);
-        elf_bonuses.push(3);
-        elf_bonuses.push(2);
-        elf_bonuses.push(1);
+        elf_bonuses.push(1000); // 10%
+        elf_bonuses.push(500); // 5%
+        elf_bonuses.push(200); // 2%
+        elf_bonuses.push(100); // 1%
+        elf_bonuses.push(50); // 0,5%
+        elf_bonuses.push(25); // 0,25%
+        elf_bonuses.push(25); // 0,25%
+
 
         cycles.push(300000000);
         cycles.push(1000000000000);
@@ -375,7 +373,7 @@ contract TronSanta is SantaClaus, Random{
         for(uint8 i = 0; i < elf_bonuses.length; i++) {
             if(ChristmasElfs[i] == address(0)) break;
 
-            uint256 win = draw_amount * elf_bonuses[i] / 100;
+            uint256 win = draw_amount * elf_bonuses[i] / 10000; // 100,00
 
             users[ChristmasElfs[i]].pool_bonus += win;
             pool_balance -= win;
