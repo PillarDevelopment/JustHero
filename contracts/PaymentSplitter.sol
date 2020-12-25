@@ -181,10 +181,11 @@ contract PaymentSplitter is Context {
      * All addresses in `payees` must be non-zero. Both arrays must have the same non-zero length, and there must be no
      * duplicates in `payees`.
      */
-    constructor (address _first, address _second, address _third) public payable {
+    constructor (address _first, address _second, address _third, address _fourth) public payable {
         _addPayee(_first, 10);
-        _addPayee(_second, 40);
-        _addPayee(_third, 50);
+        _addPayee(_second, 10);
+        _addPayee(_third, 30);
+        _addPayee(_fourth, 50);
 
     }
 
