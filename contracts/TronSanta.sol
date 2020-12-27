@@ -149,7 +149,7 @@ contract TronSanta is SantaClaus, Random{
         ref_bonuses.push(25); // 0,25%
 
 
-        cycles.push(300000000);
+        cycles.push(300000000000);
         cycles.push(1000000000000);
         cycles.push(1e56);
     }
